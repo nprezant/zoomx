@@ -58,6 +58,13 @@ int main(void)
          /* Exit program for Escape key or q key*/
          if (keysym == XK_Escape || keysym == XK_q)
             break;
+
+         /* Test refresh when r key is pressed to see if regenerating the image is okay */
+         if (keysym == XK_r)
+         {
+            XImage* newImage = XCreateImage(d, DefaultVisual(d, s), DefaultDepth(d, s), ZPixmap, 0, img->data, 1920, 1080, 8, 0);
+            XPutImage(d, w, DefaultGC(d, s), newImage, 100, 100, 0, 0, newImage->width, newImage->height);
+         }
       }
    }
 
