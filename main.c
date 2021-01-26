@@ -14,34 +14,38 @@ int main(void) {
    Display *d;
    Window w;
    XEvent e;
-   const char *msg = "Hello, World!";
    int s;
  
+   /* Open the X display. If this doesn't work, we can't do anything */
    d = XOpenDisplay(NULL);
    if (d == NULL) {
       fprintf(stderr, "Cannot open display\n");
       exit(1);
    }
  
+   /* Create the screen and window to look at */
    s = DefaultScreen(d);
    w = XCreateSimpleWindow(d, RootWindow(d, s), 10, 10, 100, 100, 1, BlackPixel(d, s), WhitePixel(d, s));
    XSelectInput(d, w, ExposureMask | KeyPressMask);
    XMapWindow(d, w);
 
+   /* Get an image of the current the full screen.
+    * TODO find screen size automatically */
    XImage* img = NULL;
    img = XGetImage(d, RootWindow(d, s), 0, 0, 1920, 1080, AllPlanes, ZPixmap);
  
+   /* Event loop */
    while (1) {
       XNextEvent(d, &e);
+
+      /* Window was exposed, so draw it! 
+       * In this case we just draw the image onto the window. */
       if (e.type == Expose) {
-          /* Window was exposed, so draw it! */
-         XFillRectangle(d, w, DefaultGC(d, s), 20, 20, 10, 10);
-         XDrawString(d, w, DefaultGC(d, s), 10, 50, msg, strlen(msg));
          XPutImage(d, w, DefaultGC(d, s), img, 0, 0, 0, 0, img->width, img->height);
       }
 
+      /* On a key press, figure out which key. */
       if (e.type == KeyPress) {
-        /* Key was pressed. Figure out which key. */
         char buf[128] = {0};
         KeySym keysym;
         int len = XLookupString(&e.xkey, buf, sizeof buf, &keysym, NULL);
@@ -51,7 +55,10 @@ int main(void) {
             break;
       }
    }
- 
+
+   /* Clean up and exit */
+   if(img != NULL)
+      XDestroyImage(img);
    XCloseDisplay(d);
    return 0;
 }
