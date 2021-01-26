@@ -16,6 +16,8 @@ int main(void)
    Window w;
    XEvent e;
    int s;
+   int width;
+   int height;
 
    /* Open the X display. If this doesn't work, we can't do anything */
    d = XOpenDisplay(NULL);
@@ -25,8 +27,12 @@ int main(void)
       exit(1);
    }
 
-   /* Create the screen and window to look at */
+   /* Create the screen and compute its dimensions */
    s = DefaultScreen(d);
+   width = DisplayWidth(d, s);
+   height = DisplayHeight(d, s);
+
+   /* Create the window to look at */
    w = XCreateSimpleWindow(d, RootWindow(d, s), 10, 10, 100, 100, 1, BlackPixel(d, s), WhitePixel(d, s));
    XSelectInput(d, w, ExposureMask | KeyPressMask);
    XMapWindow(d, w);
@@ -34,7 +40,7 @@ int main(void)
    /* Get an image of the current the full screen.
     * TODO find screen size automatically */
    XImage *img = NULL;
-   img = XGetImage(d, RootWindow(d, s), 0, 0, 1920, 1080, AllPlanes, ZPixmap);
+   img = XGetImage(d, RootWindow(d, s), 0, 0, width, height, AllPlanes, ZPixmap);
 
    /* Event loop */
    while (1)
@@ -62,7 +68,7 @@ int main(void)
          /* Test refresh when r key is pressed to see if regenerating the image is okay */
          if (keysym == XK_r)
          {
-            XImage* newImage = XCreateImage(d, DefaultVisual(d, s), DefaultDepth(d, s), ZPixmap, 0, img->data, 1920, 1080, 8, 0);
+            XImage* newImage = XCreateImage(d, DefaultVisual(d, s), DefaultDepth(d, s), ZPixmap, 0, img->data, width, height, 8, 0);
             XPutImage(d, w, DefaultGC(d, s), newImage, 100, 100, 0, 0, newImage->width, newImage->height);
          }
       }
