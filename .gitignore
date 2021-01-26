@@ -1,0 +1,7 @@
+# Files without extension (e.g. binaries)
+# 1) Ignore all
+# 2) Unignore all with extensions
+# 3) Unignore all dirs
+*
+!*.*
+!*/
