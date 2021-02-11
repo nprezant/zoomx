@@ -12,48 +12,49 @@
 
 int main(void)
 {
-   Display *d;
-   Window w;
-   XEvent e;
-   int s;
-   int width;
-   int height;
-
    /* Open the X display. If this doesn't work, we can't do anything */
-   d = XOpenDisplay(NULL);
-   if (d == NULL)
+   Display* display = XOpenDisplay(NULL);
+   if (display == NULL)
    {
       fprintf(stderr, "Cannot open display\n");
       exit(1);
    }
 
-   /* Create the screen and compute its dimensions */
-   s = DefaultScreen(d);
-   width = DisplayWidth(d, s);
-   height = DisplayHeight(d, s);
+   /* Get the screen and compute its dimensions */
+   int screen = DefaultScreen(display);
+   int screenWidth = DisplayWidth(display, screen);
+   int screenHeight = DisplayHeight(display, screen);
 
-   /* Create the window to look at */
-   w = XCreateSimpleWindow(d, RootWindow(d, s), 10, 10, 100, 100, 1, BlackPixel(d, s), WhitePixel(d, s));
-   XSelectInput(d, w, ExposureMask | KeyPressMask);
-   XMapWindow(d, w);
+   /* Get some default visual items */
+   Window rootWindow = RootWindow(display, screen);
+   GC graphicsContext = DefaultGC(display, screen);
+   Visual* visual = DefaultVisual(display, screen);
+   int depth = DefaultDepth(display, screen);
 
-   /* Get an image of the current the full screen.
-    * TODO find screen size automatically */
+   /* Create the window to look at and subscribe to events */
+   long blackPixel = BlackPixel(display, screen);
+   long whitePixel = WhitePixel(display, screen);
+   Window window = XCreateSimpleWindow(display, rootWindow, 10, 10, 100, 100, 1, blackPixel, whitePixel);
+   XSelectInput(display, window, ExposureMask | KeyPressMask);
+   XMapWindow(display, window);
+
+   /* Get an image of the current the full screen. */
    XImage *img = NULL;
-   img = XGetImage(d, RootWindow(d, s), 0, 0, width, height, AllPlanes, ZPixmap);
+   img = XGetImage(display, rootWindow, 0, 0, screenWidth, screenHeight, AllPlanes, ZPixmap);
 
    XImage *newImage = NULL;
 
    /* Event loop */
+   XEvent e;
    while (1)
    {
-      XNextEvent(d, &e);
+      XNextEvent(display, &e);
 
       /* Window was exposed, so draw it! 
        * In this case we just draw the image onto the window. */
       if (e.type == Expose)
       {
-         XPutImage(d, w, DefaultGC(d, s), img, 0, 0, 0, 0, img->width, img->height);
+         XPutImage(display, window, graphicsContext, img, 0, 0, 0, 0, img->width, img->height);
       }
 
       /* On a key press, figure out which key. */
@@ -70,8 +71,8 @@ int main(void)
          /* Test refresh when r key is pressed to see if regenerating the image is okay */
          else if (keysym == XK_r)
          {
-            newImage = XCreateImage(d, DefaultVisual(d, s), DefaultDepth(d, s), ZPixmap, 0, img->data, width, height, 8, 0);
-            XPutImage(d, w, DefaultGC(d, s), newImage, 100, 100, 0, 0, newImage->width, newImage->height);
+            newImage = XCreateImage(display, visual, depth, ZPixmap, 0, img->data, screenWidth, screenHeight, 8, 0);
+            XPutImage(display, window, graphicsContext, newImage, 100, 100, 0, 0, newImage->width, newImage->height);
             newImage->data = NULL; /* XDestroyImage frees the data struct, but we need to keep it around because it points to the original image */
             XDestroyImage(newImage);
          }
@@ -83,8 +84,8 @@ int main(void)
             double scaleWidth = scale;
             double scaleHeight = scale;
             
-            double w2 = width * scale;
-            double h2 = height * scale;
+            double w2 = screenWidth * scale;
+            double h2 = screenHeight * scale;
             char *dataz = malloc(w2 * h2 * 3);
 
             int byte_order = img->byte_order; /* data byte order, LSBFirst, MSBFirst */
@@ -97,7 +98,7 @@ int main(void)
                   for(int cx = 0; cx < w2; cx++)
                   {
                      int pixel = (cy * (w2 *3)) + (cx*3);
-                     int nearestMatch =  (((int)(cy / scaleHeight) * (width *3)) + ((int)(cx / scaleWidth) *3) );
+                     int nearestMatch =  (((int)(cy / scaleHeight) * (screenWidth *3)) + ((int)(cx / scaleWidth) *3) );
                      
                      dataz[pixel    ] =  data[nearestMatch    ];
                      dataz[pixel + 1] =  data[nearestMatch + 1];
@@ -136,8 +137,8 @@ int main(void)
                      }
             */
             
-            XImage *newImage = XCreateImage(d, DefaultVisual(d, s), DefaultDepth(d, s), ZPixmap, 0, dataz, w2, h2, 8, 0);
-            XPutImage(d, w, DefaultGC(d, s), newImage, 0, 0, 0, 0, newImage->width, newImage->height);
+            XImage *newImage = XCreateImage(display, DefaultVisual(display, screen), DefaultDepth(display, screen), ZPixmap, 0, dataz, w2, h2, 8, 0);
+            XPutImage(display, window, DefaultGC(display, screen), newImage, 0, 0, 0, 0, newImage->width, newImage->height);
             newImage->data = NULL;
             XDestroyImage(newImage);
             free(dataz);
@@ -148,6 +149,6 @@ int main(void)
    /* Clean up and exit */
    if (img != NULL)
       XDestroyImage(img);
-   XCloseDisplay(d);
+   XCloseDisplay(display);
    return 0;
 }
