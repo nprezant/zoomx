@@ -10,13 +10,57 @@
  * ./main
  */
 
+XImage* ScaleXImage(XImage* originalImage, double scale, Display* display, Visual* visual, int depth)
+{
+   double scaleWidth = scale;
+   double scaleHeight = scale;
+   
+   double w2 = originalImage->width * scale;
+   double h2 = originalImage->height * scale;
+
+   /* Allocate space for scaled image data */
+   char *dataz = malloc(w2 * h2 * 4);
+   memset(dataz, 0, w2 * h2 * 4);
+
+   int byte_order = originalImage->byte_order; /* data byte order, LSBFirst, MSBFirst */
+   int bits_per_pixel = originalImage->bits_per_pixel;      /* bits per pixel (ZPixmap) */
+   char* data = originalImage->data;
+
+   /* Copy existing image to modify */
+   long pixel = 0;
+   XImage* scaledImage = XCreateImage(display, visual, depth, ZPixmap, 0, dataz, w2, h2, 8, 0);
+
+   for (int x = 0; x < scaledImage->width; x++)
+   {
+      for (int y = 0; y < scaledImage->height; y++)
+      {
+         /* Figure out the closest pixel on the original image */
+         int x1 = (int)(x / scaleWidth);
+         int y1 = (int)(y / scaleHeight);
+         pixel = XGetPixel(originalImage, x1, y1);
+
+         /* Invert the color, just for fun */
+         XPutPixel(scaledImage, x, y, ~pixel);
+      }
+   }
+
+   return scaledImage;
+}
+
+struct ViewLocation
+{
+   int Top;
+   int Left;
+} viewLocation = { .Top = 0, .Left = 0 };
+
+
 int main(void)
 {
    /* Open the X display. If this doesn't work, we can't do anything */
    Display* display = XOpenDisplay(NULL);
    if (display == NULL)
    {
-      fprintf(stderr, "Cannot open display\n");
+      fprintf(stderr, "Cannot open X display\n");
       exit(1);
    }
 
@@ -39,10 +83,13 @@ int main(void)
    XMapWindow(display, window);
 
    /* Get an image of the current the full screen. */
-   XImage *image = NULL;
-   image = XGetImage(display, rootWindow, 0, 0, screenWidth, screenHeight, AllPlanes, ZPixmap);
+   XImage* screenshot = NULL;
+   screenshot = XGetImage(display, rootWindow, 0, 0, screenWidth, screenHeight, AllPlanes, ZPixmap);
 
-   XImage *newImage = NULL;
+   /* Scale the image by two for initial display */
+   double defaultScaleFactor = 2.0;
+   double currentScaleFactor = defaultScaleFactor;
+   XImage* scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
 
    /* Event loop */
    XEvent e;
@@ -54,7 +101,7 @@ int main(void)
        * In this case we just draw the image onto the window. */
       if (e.type == Expose)
       {
-         XPutImage(display, window, graphicsContext, image, 0, 0, 0, 0, image->width, image->height);
+         XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
       }
 
       /* On a key press, figure out which key. */
@@ -68,62 +115,55 @@ int main(void)
          if (keysym == XK_Escape || keysym == XK_q)
             break;
 
-         /* Test refresh when r key is pressed to see if regenerating the image is okay */
-         else if (keysym == XK_r)
+         /* Zoom in when plus key is pressed */
+         else if (keysym == XK_plus || keysym == XK_equal)
          {
-            newImage = XCreateImage(display, visual, depth, ZPixmap, 0, image->data, screenWidth, screenHeight, 8, 0);
-            XPutImage(display, window, graphicsContext, newImage, 100, 100, 0, 0, newImage->width, newImage->height);
-            newImage->data = NULL; /* XDestroyImage frees the data struct, but we need to keep it around because it points to the original image */
-            XDestroyImage(newImage);
+            currentScaleFactor += 1.0;
+            scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
+            XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
          }
 
-         /* Zoom in when plus key is pressed */
-         else if (keysym == XK_plus)
+         /* Zoom out for minus key. Scale cannot be less than 1.0 */
+         else if (keysym == XK_minus)
          {
-            double scale = 2.0;
-            double scaleWidth = scale;
-            double scaleHeight = scale;
-            
-            double w2 = screenWidth * scale;
-            double h2 = screenHeight * scale;
+            currentScaleFactor -= 1.0;
+            if (currentScaleFactor < 1.0)
+               currentScaleFactor = 1.0;
+            scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
+            XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
+         }
 
-            /* Allocate space for scaled image data */
-            char *dataz = malloc(w2 * h2 * 4);
-            memset(dataz, 0, w2 * h2 * 4);
-
-            int byte_order = image->byte_order; /* data byte order, LSBFirst, MSBFirst */
-            int bits_per_pixel = image->bits_per_pixel;      /* bits per pixel (ZPixmap) */
-            char* data = image->data;
-
-            /* Copy existing image to modify */
-            long pixel = 0;
-            XImage *newImage = XCreateImage(display, visual, depth, ZPixmap, 0, dataz, w2, h2, 8, 0);
-
-            for (int x = 0; x < newImage->width; x++)
-            {
-               for (int y = 0; y < newImage->height; y++)
-               {
-                  /* Figure out the closest pixel on the original image */
-                  int x1 = (int)(x / scaleWidth);
-                  int y1 = (int)(y / scaleHeight);
-                  pixel = XGetPixel(image, x1, y1);
-+
-                  /* Invert the color, just for fun */
-                  XPutPixel(newImage, x, y, ~pixel);
-               }
-            }
-            
-            XPutImage(display, window, graphicsContext, newImage, 0, 0, 0, 0, newImage->width, newImage->height);
-            newImage->data = NULL;
-            XDestroyImage(newImage);
-            free(dataz);
+         /* Move view with arrow keys */
+         else if (keysym == XK_Right)
+         {
+            viewLocation.Left += 100;
+            XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
+         }
+         else if (keysym == XK_Left)
+         {
+            viewLocation.Left -= 100;
+            XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
+         }
+         else if (keysym == XK_Up)
+         {
+            viewLocation.Top -= 100;
+            XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
+         }
+         else if (keysym == XK_Down)
+         {
+            viewLocation.Top += 100;
+            XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
          }
       }
    }
 
    /* Clean up and exit */
-   if (image != NULL)
-      XDestroyImage(image);
+   if (screenshot != NULL)
+      XDestroyImage(screenshot);
+
+   if (scaledImage != NULL)
+      XDestroyImage(scaledImage);
+
    XCloseDisplay(display);
    return 0;
 }
