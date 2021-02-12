@@ -99,12 +99,16 @@ int main(void)
             long pixel = 0;
             XImage *newImage = XCreateImage(display, visual, depth, ZPixmap, 0, dataz, w2, h2, 8, 0);
 
-            for (int x = 0; x < image->width; x++)
+            for (int x = 0; x < newImage->width; x++)
             {
-               for (int y = 0; y < image->height; y++)
+               for (int y = 0; y < newImage->height; y++)
                {
-                  // Invert the color of each pixel
-                  pixel = XGetPixel(image, x, y);
+                  /* Figure out the closest pixel on the original image */
+                  int x1 = (int)(x / scaleWidth);
+                  int y1 = (int)(y / scaleHeight);
+                  pixel = XGetPixel(image, x1, y1);
++
+                  /* Invert the color, just for fun */
                   XPutPixel(newImage, x, y, ~pixel);
                }
             }
