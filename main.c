@@ -39,12 +39,29 @@ XImage* ScaleXImage(XImage* originalImage, double scale, Display* display, Visua
          int y1 = (int)(y / scaleHeight);
          pixel = XGetPixel(originalImage, x1, y1);
 
-         /* Invert the color, just for fun */
-         XPutPixel(scaledImage, x, y, ~pixel);
+         /* Put this pixel onto the scaled image */
+         XPutPixel(scaledImage, x, y, pixel);
       }
    }
 
    return scaledImage;
+}
+
+XEvent CreateFullscreenRequest(Display* display, Window window)
+{
+    Atom wm_state = XInternAtom(display, "_NET_WM_STATE", False);
+    Atom fullscreen = XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", False);
+
+    XEvent e;
+    memset(&e, 0, sizeof(e)); /* ensure XEvent is zeroed */
+    e.type = ClientMessage;
+    e.xclient.window = window;
+    e.xclient.message_type = wm_state;
+    e.xclient.format = 32;
+    e.xclient.data.l[0] = 1;
+    e.xclient.data.l[1] = fullscreen;
+    e.xclient.data.l[2] = 0;
+    return e;
 }
 
 struct ViewLocation
@@ -63,6 +80,10 @@ int main(void)
       fprintf(stderr, "Cannot open X display\n");
       exit(1);
    }
+
+   /* Read settings (or command line arguments...?) */
+   int startFullscreen = True;
+   double defaultScaleFactor = 2.0;
 
    /* Get the screen and compute its dimensions */
    int screen = DefaultScreen(display);
@@ -87,9 +108,15 @@ int main(void)
    screenshot = XGetImage(display, rootWindow, 0, 0, screenWidth, screenHeight, AllPlanes, ZPixmap);
 
    /* Scale the image by two for initial display */
-   double defaultScaleFactor = 2.0;
    double currentScaleFactor = defaultScaleFactor;
    XImage* scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
+
+   /* Make the window fullscreen if requested */
+   if (startFullscreen)
+   {
+      XEvent fullscreenRequest = CreateFullscreenRequest(display, window);
+      XSendEvent(display, rootWindow, False, SubstructureRedirectMask | SubstructureNotifyMask, &fullscreenRequest);
+   }
 
    /* Event loop */
    XEvent e;
