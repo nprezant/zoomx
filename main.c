@@ -208,23 +208,23 @@ int main(void)
             }
          }
 
-         /* Move view with arrow keys */
-         else if (keysym == XK_Right)
+         /* Move view with arrow keys or WASD keys */
+         else if (keysym == XK_Right || keysym == XK_d || keysym == XK_D)
          {
             viewLocation.Left += panIncrement;
             PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
-         else if (keysym == XK_Left)
+         else if (keysym == XK_Left || keysym == XK_a || keysym == XK_A)
          {
             viewLocation.Left -= panIncrement;
             PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
-         else if (keysym == XK_Up)
+         else if (keysym == XK_Up || keysym == XK_w || keysym == XK_W)
          {
             viewLocation.Top -= panIncrement;
             PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
-         else if (keysym == XK_Down)
+         else if (keysym == XK_Down || keysym == XK_s || keysym == XK_S)
          {
             viewLocation.Top += panIncrement;
             PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
