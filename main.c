@@ -68,8 +68,42 @@ struct ViewLocation
 {
    int Top;
    int Left;
-} viewLocation = { .Top = 0, .Left = 0 };
+};
 
+void PutXImageWithinBounds(Display* display, Window window, GC graphicsContext, XImage* image, struct ViewLocation* viewLocation)
+{
+   /* Get the geometry of the window that is currently being displayed to. */
+   Window rootWindow;
+   int windowX;
+   int windowY;
+   unsigned int windowWidth;
+   unsigned int windowHeight;
+   unsigned int windowBorder;
+   unsigned int windowDepth;
+   XGetGeometry(display, window, &rootWindow, &windowX, &windowY, &windowWidth, &windowHeight, &windowBorder, &windowDepth);
+
+   /* Too far to the left if the right side of the image is encroaching on the edge of the window. 
+    * Positive means the right side of the image is safely off to the right and out of sight.
+    * Negtive means the right side of the image is on window, so we'll correct for that. */
+   int rightEncroachment = (image->width - viewLocation->Left) - windowWidth;
+   if (rightEncroachment < 0)
+      viewLocation->Left += rightEncroachment;
+
+   /* Too far to the bottom is a similar story */
+   int bottomEncroachment = (image->height - viewLocation->Top) - windowHeight;
+   if (bottomEncroachment < 0)
+      viewLocation->Top += bottomEncroachment;
+
+   /* Cannot place the top of the image above the top of the window */
+   if (viewLocation->Top < 0)
+      viewLocation->Top = 0;
+
+   /* Cannot place the left of the image to the left of the window */
+   if (viewLocation->Left < 0)
+      viewLocation->Left = 0;
+
+   XPutImage(display, window, graphicsContext, image, viewLocation->Left, viewLocation->Top, 0, 0, image->width, image->height);
+}
 
 int main(void)
 {
@@ -84,6 +118,9 @@ int main(void)
    /* Read settings (or command line arguments...?) */
    int startFullscreen = True;
    double defaultScaleFactor = 2.0;
+   double maxScaleFactor = 4.0;
+   double scaleFactorIncrement = 1.0;
+   struct ViewLocation viewLocation = { .Top = 0, .Left = 0 };
 
    /* Get the screen and compute its dimensions */
    int screen = DefaultScreen(display);
@@ -145,41 +182,43 @@ int main(void)
          /* Zoom in when plus key is pressed */
          else if (keysym == XK_plus || keysym == XK_equal)
          {
-            currentScaleFactor += 1.0;
+            currentScaleFactor += scaleFactorIncrement;
+            if (currentScaleFactor > maxScaleFactor)
+               currentScaleFactor = maxScaleFactor;
             scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
-            XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
+            PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
 
          /* Zoom out for minus key. Scale cannot be less than 1.0 */
          else if (keysym == XK_minus)
          {
-            currentScaleFactor -= 1.0;
+            currentScaleFactor -= scaleFactorIncrement;
             if (currentScaleFactor < 1.0)
                currentScaleFactor = 1.0;
             scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
-            XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
+            PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
 
          /* Move view with arrow keys */
          else if (keysym == XK_Right)
          {
             viewLocation.Left += 100;
-            XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
+            PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
          else if (keysym == XK_Left)
          {
             viewLocation.Left -= 100;
-            XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
+            PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
          else if (keysym == XK_Up)
          {
             viewLocation.Top -= 100;
-            XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
+            PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
          else if (keysym == XK_Down)
          {
             viewLocation.Top += 100;
-            XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
+            PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
       }
    }
