@@ -1,9 +1,5 @@
-# Zoomin
+# ZoomX
 
-img->width * img->height * 4 + 4079
-8298479
+A simple and lightweight tool for zooming in and panning around on an X display.
 
-^^ this is the size of the image data???
-
-Helpful overflow post:
-https://stackoverflow.com/questions/51431258/why-is-an-ximages-data-pointer-null-when-capturing-using-xshmgetimage
+Inspired by ZoomIt for Windows.
