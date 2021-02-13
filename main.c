@@ -137,7 +137,6 @@ int main(void)
    long whitePixel = WhitePixel(display, screen);
    Window window = XCreateSimpleWindow(display, rootWindow, 10, 10, 100, 100, 1, blackPixel, whitePixel);
    XSelectInput(display, window, ExposureMask | KeyPressMask);
-   XMapWindow(display, window);
 
    /* Get an image of the current the full screen. */
    XImage* screenshot = NULL;
@@ -147,7 +146,8 @@ int main(void)
    double currentScaleFactor = defaultScaleFactor;
    XImage* scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
 
-   /* Make the window fullscreen if requested */
+   /* Show window and make fullscreen if requested */
+   XMapWindow(display, window);
    if (startFullscreen)
    {
       XEvent fullscreenRequest = CreateFullscreenRequest(display, window);
