@@ -118,6 +118,7 @@ int main(void)
    double defaultScaleFactor = 2.0;
    double maxScaleFactor = 4.0;
    double scaleFactorIncrement = 1.0;
+   int panIncrement = 100;
    struct ViewLocation viewLocation = { .Top = 0, .Left = 0 };
 
    /* Get the screen and compute its dimensions */
@@ -210,22 +211,22 @@ int main(void)
          /* Move view with arrow keys */
          else if (keysym == XK_Right)
          {
-            viewLocation.Left += 100;
+            viewLocation.Left += panIncrement;
             PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
          else if (keysym == XK_Left)
          {
-            viewLocation.Left -= 100;
+            viewLocation.Left -= panIncrement;
             PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
          else if (keysym == XK_Up)
          {
-            viewLocation.Top -= 100;
+            viewLocation.Top -= panIncrement;
             PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
          else if (keysym == XK_Down)
          {
-            viewLocation.Top += 100;
+            viewLocation.Top += panIncrement;
             PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
       }
