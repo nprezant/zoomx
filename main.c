@@ -22,8 +22,6 @@ XImage* ScaleXImage(XImage* originalImage, double scale, Display* display, Visua
    char *dataz = malloc(w2 * h2 * 4);
    memset(dataz, 0, w2 * h2 * 4);
 
-   int byte_order = originalImage->byte_order; /* data byte order, LSBFirst, MSBFirst */
-   int bits_per_pixel = originalImage->bits_per_pixel;      /* bits per pixel (ZPixmap) */
    char* data = originalImage->data;
 
    /* Copy existing image to modify */
@@ -182,21 +180,31 @@ int main(void)
          /* Zoom in when plus key is pressed */
          else if (keysym == XK_plus || keysym == XK_equal)
          {
+            int lastScaleFactor = currentScaleFactor;
             currentScaleFactor += scaleFactorIncrement;
             if (currentScaleFactor > maxScaleFactor)
                currentScaleFactor = maxScaleFactor;
-            scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
-            PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
+
+            if (currentScaleFactor != lastScaleFactor)
+            {
+               scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
+               PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
+            }
          }
 
          /* Zoom out for minus key. Scale cannot be less than 1.0 */
          else if (keysym == XK_minus)
          {
+            int lastScaleFactor = currentScaleFactor;
             currentScaleFactor -= scaleFactorIncrement;
             if (currentScaleFactor < 1.0)
                currentScaleFactor = 1.0;
-            scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
-            PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
+
+            if (currentScaleFactor != lastScaleFactor)
+            {
+               scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
+               PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
+            }
          }
 
          /* Move view with arrow keys */
