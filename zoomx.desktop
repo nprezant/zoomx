@@ -1,7 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=ZoomX
-Comment=Screen magnifying zoom utility for X11
-Exec=/usr/bin/zoomx
-Terminal=false
-Categories=Utility;
