@@ -5,3 +5,8 @@
 *
 !*.*
 !*/
+
+# Packaging artifacts
+pkg/
+src/
+*.zst
