@@ -22,8 +22,6 @@ XImage* ScaleXImage(XImage* originalImage, double scale, Display* display, Visua
    char *dataz = malloc(w2 * h2 * 4);
    memset(dataz, 0, w2 * h2 * 4);
 
-   char* data = originalImage->data;
-
    /* Copy existing image to modify */
    long pixel = 0;
    XImage* scaledImage = XCreateImage(display, visual, depth, ZPixmap, 0, dataz, w2, h2, 8, 0);
@@ -153,7 +151,8 @@ int main(void)
 
    /* Scale the image by two for initial display */
    double currentScaleFactor = defaultScaleFactor;
-   XImage* scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
+   XImage* scaledImage = NULL;
+   scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
 
    /* Create the window to look at and subscribe to events */
    long blackPixel = BlackPixel(display, screen);
@@ -203,6 +202,8 @@ int main(void)
 
             if (currentScaleFactor != lastScaleFactor)
             {
+               XDestroyImage(scaledImage);
+               scaledImage = NULL;
                scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
                PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
             }
@@ -218,6 +219,8 @@ int main(void)
 
             if (currentScaleFactor != lastScaleFactor)
             {
+               XDestroyImage(scaledImage);
+               scaledImage = NULL;
                scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
                PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
             }
@@ -249,11 +252,18 @@ int main(void)
 
    /* Clean up and exit */
    if (screenshot != NULL)
+   {
       XDestroyImage(screenshot);
+      screenshot = NULL;
+   }
 
    if (scaledImage != NULL)
+   {
       XDestroyImage(scaledImage);
+      scaledImage = NULL;
+   }
 
    XCloseDisplay(display);
+   display = NULL;
    return 0;
 }
