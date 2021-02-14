@@ -1,4 +1,4 @@
-# Maintainer: Noah Prezant <noah.prezant@gmail.com>
+# Maintainer: Noah Prezant <noah dot prezant at gmail dot com>
 pkgname=zoomx
 pkgver=0.0.0
 pkgrel=1
