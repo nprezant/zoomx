@@ -68,6 +68,21 @@ struct ViewLocation
    int Left;
 };
 
+struct ViewLocation GetStartingViewLocation(Display* display, Window window)
+{
+   Window rootWindow;
+   Window childWindow;
+   int rootX;
+   int rootY;
+   int childX;
+   int childY;
+   int mask;
+   Bool pointerOnWindow = XQueryPointer(display, window, &rootWindow, &childWindow, &rootX, &rootY, &childX, &childY, &mask);
+
+   struct ViewLocation viewLocation = { .Top = rootY, .Left = rootX };
+   return viewLocation;
+};
+
 void PutXImageWithinBounds(Display* display, Window window, GC graphicsContext, XImage* image, struct ViewLocation* viewLocation)
 {
    /* Get the geometry of the window that is currently being displayed to. */
@@ -114,12 +129,11 @@ int main(void)
    }
 
    /* Read settings (or command line arguments...?) */
-   int startFullscreen = True;
+   Bool startFullscreen = True;
    double defaultScaleFactor = 2.0;
    double maxScaleFactor = 4.0;
    double scaleFactorIncrement = 1.0;
    int panIncrement = 100;
-   struct ViewLocation viewLocation = { .Top = 0, .Left = 0 };
 
    /* Get the screen and compute its dimensions */
    int screen = DefaultScreen(display);
@@ -131,12 +145,7 @@ int main(void)
    GC graphicsContext = DefaultGC(display, screen);
    Visual* visual = DefaultVisual(display, screen);
    int depth = DefaultDepth(display, screen);
-
-   /* Create the window to look at and subscribe to events */
-   long blackPixel = BlackPixel(display, screen);
-   long whitePixel = WhitePixel(display, screen);
-   Window window = XCreateSimpleWindow(display, rootWindow, 10, 10, 100, 100, 1, blackPixel, whitePixel);
-   XSelectInput(display, window, ExposureMask | KeyPressMask);
+   struct ViewLocation viewLocation = GetStartingViewLocation(display, rootWindow);
 
    /* Get an image of the current the full screen. */
    XImage* screenshot = NULL;
@@ -146,8 +155,14 @@ int main(void)
    double currentScaleFactor = defaultScaleFactor;
    XImage* scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
 
-   /* Show window and make fullscreen if requested */
+   /* Create the window to look at and subscribe to events */
+   long blackPixel = BlackPixel(display, screen);
+   long whitePixel = WhitePixel(display, screen);
+   Window window = XCreateSimpleWindow(display, rootWindow, 10, 10, 100, 100, 1, blackPixel, whitePixel);
+   XSelectInput(display, window, ExposureMask | KeyPressMask);
    XMapWindow(display, window);
+
+   /* Show window and make fullscreen if requested */
    if (startFullscreen)
    {
       XEvent fullscreenRequest = CreateFullscreenRequest(display, window);
