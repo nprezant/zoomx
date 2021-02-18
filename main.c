@@ -164,7 +164,7 @@ int main(void)
    Bool startFullscreen = True;
    Bool centerOnMouse = False;
    double defaultScaleFactor = 2.0;
-   double maxScaleFactor = 4.0;
+   double maxScaleFactor = 5.0;
    double scaleFactorIncrement = 1.0;
    int panIncrement = 100;
 
@@ -219,19 +219,24 @@ int main(void)
          PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
       }
 
-      /* On a key press, figure out which key. */
       if (e.type == KeyPress)
       {
+         /* Get a comparable symbol for the pressed key. */
          char buf[128] = {0};
          KeySym keysym;
          int len = XLookupString(&e.xkey, buf, sizeof buf, &keysym, NULL);
+
+         /* Modify panning increment based on modifer keys */
+         int modifiedPanIncrement = panIncrement;
+         if (e.xkey.state & ShiftMask)
+            modifiedPanIncrement *= 4;
 
          /* Exit program for Escape key or q key*/
          if (keysym == XK_Escape || keysym == XK_q)
             break;
 
-         /* Zoom in when plus key is pressed */
-         else if (keysym == XK_plus || keysym == XK_equal)
+         /* Check for zoom in */
+         else if (keysym == XK_plus || keysym == XK_equal || keysym == XK_Page_Up)
          {
             int lastScaleFactor = currentScaleFactor;
             currentScaleFactor += scaleFactorIncrement;
@@ -248,8 +253,8 @@ int main(void)
             }
          }
 
-         /* Zoom out for minus key. Scale cannot be less than 1.0 */
-         else if (keysym == XK_minus)
+         /* Check for zoom out. Scale cannot be less than 1.0 */
+         else if (keysym == XK_minus || keysym == XK_Page_Down)
          {
             int lastScaleFactor = currentScaleFactor;
             currentScaleFactor -= scaleFactorIncrement;
@@ -269,22 +274,22 @@ int main(void)
          /* Move view with arrow keys or WASD keys */
          else if (keysym == XK_Right || keysym == XK_d || keysym == XK_D)
          {
-            viewLocation.Left += panIncrement;
+            viewLocation.Left += modifiedPanIncrement;
             PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
          else if (keysym == XK_Left || keysym == XK_a || keysym == XK_A)
          {
-            viewLocation.Left -= panIncrement;
+            viewLocation.Left -= modifiedPanIncrement;
             PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
          else if (keysym == XK_Up || keysym == XK_w || keysym == XK_W)
          {
-            viewLocation.Top -= panIncrement;
+            viewLocation.Top -= modifiedPanIncrement;
             PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
          else if (keysym == XK_Down || keysym == XK_s || keysym == XK_S)
          {
-            viewLocation.Top += panIncrement;
+            viewLocation.Top += modifiedPanIncrement;
             PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
          }
       }

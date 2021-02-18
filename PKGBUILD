@@ -8,7 +8,7 @@ url="https://github.com/boom-roasted/zoomx"
 license=('MIT')
 depends=(glibc libx11)
 source=("main.c")
-sha256sums=('12a16b88afe8998e7c096e244f0aa3ac5ab6b014c4899dcf4d4790735deab2f5')
+sha256sums=('71c4c9a5872d4577b79abb382b41124191022ca8830fe390829ad6572abc75a1')
 
 build() {
 	gcc -g main.c -L/usr/X11R6/lib -lX11 -o zoomx
