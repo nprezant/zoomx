@@ -66,7 +66,7 @@ struct ViewLocation
    int Left;
 };
 
-struct ViewLocation GetStartingViewLocation(Display* display, Window window)
+struct ViewLocation GetMouseLocation(Display* display, Window window)
 {
    Window rootWindow;
    Window childWindow;
@@ -74,12 +74,37 @@ struct ViewLocation GetStartingViewLocation(Display* display, Window window)
    int rootY;
    int childX;
    int childY;
-   int mask;
+   unsigned int mask;
    Bool pointerOnWindow = XQueryPointer(display, window, &rootWindow, &childWindow, &rootX, &rootY, &childX, &childY, &mask);
 
    struct ViewLocation viewLocation = { .Top = rootY, .Left = rootX };
    return viewLocation;
 };
+
+void CenterViewOnMouse(Display* display, Window window, int screenWidth, int screenHeight, double sf, double lastSf, struct ViewLocation* viewLocation)
+{
+   /* The target center of the image is the current mouse location */
+   struct ViewLocation mouse = GetMouseLocation(display, window);
+
+   /* Delta scale */
+   double dsf = sf / lastSf;
+
+   /* Adjust for scaling */
+   viewLocation->Left *= dsf;
+   viewLocation->Top *= dsf;
+
+   /* Find the desired center of the image, in pixels */
+   int centerX = viewLocation->Left + mouse.Left * dsf;
+   int centerY = viewLocation->Top + mouse.Top * dsf;
+
+   /* Account for screen size to determine the corresponding top left corner */
+   int cornerX = centerX - 0.5 * screenWidth;
+   int cornerY = centerY - 0.5 * screenHeight;
+
+   /* Set the new view location */
+   viewLocation->Left = cornerX;
+   viewLocation->Top = cornerY;  
+}
 
 void PutXImageWithinBounds(Display* display, Window window, GC graphicsContext, XImage* image, struct ViewLocation* viewLocation)
 {
@@ -143,7 +168,6 @@ int main(void)
    GC graphicsContext = DefaultGC(display, screen);
    Visual* visual = DefaultVisual(display, screen);
    int depth = DefaultDepth(display, screen);
-   struct ViewLocation viewLocation = GetStartingViewLocation(display, rootWindow);
 
    /* Get an image of the current the full screen. */
    XImage* screenshot = NULL;
@@ -160,6 +184,10 @@ int main(void)
    Window window = XCreateSimpleWindow(display, rootWindow, 10, 10, 100, 100, 1, blackPixel, whitePixel);
    XSelectInput(display, window, ExposureMask | KeyPressMask);
    XMapWindow(display, window);
+
+   /* Figure out where the image should be panned to */
+   struct ViewLocation viewLocation = { .Left = 0, .Top = 0 };
+   CenterViewOnMouse(display, window, screenWidth, screenHeight, currentScaleFactor, 1.0, &viewLocation);
 
    /* Show window and make fullscreen if requested */
    if (startFullscreen)
@@ -178,7 +206,7 @@ int main(void)
        * In this case we just draw the image onto the window. */
       if (e.type == Expose)
       {
-         XPutImage(display, window, graphicsContext, scaledImage, viewLocation.Left, viewLocation.Top, 0, 0, scaledImage->width, scaledImage->height);
+         PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
       }
 
       /* On a key press, figure out which key. */
@@ -205,6 +233,7 @@ int main(void)
                XDestroyImage(scaledImage);
                scaledImage = NULL;
                scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
+               CenterViewOnMouse(display, window, screenWidth, screenHeight, currentScaleFactor, lastScaleFactor, &viewLocation);
                PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
             }
          }
@@ -222,6 +251,7 @@ int main(void)
                XDestroyImage(scaledImage);
                scaledImage = NULL;
                scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
+               CenterViewOnMouse(display, window, screenWidth, screenHeight, currentScaleFactor, lastScaleFactor, &viewLocation);
                PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
             }
          }
