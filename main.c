@@ -81,10 +81,19 @@ struct ViewLocation GetMouseLocation(Display* display, Window window)
    return viewLocation;
 };
 
-void CenterViewOnMouse(Display* display, Window window, int screenWidth, int screenHeight, double sf, double lastSf, struct ViewLocation* viewLocation)
+void CenterView(Display* display, Window window, int screenWidth, int screenHeight, double sf, double lastSf, Bool centerOnMouse, struct ViewLocation* viewLocation)
 {
-   /* The target center of the image is the current mouse location */
-   struct ViewLocation mouse = GetMouseLocation(display, window);
+   /* The target center of the image is either the current mouse location or the center of the screen */
+   struct ViewLocation mouse;
+   if (centerOnMouse)
+   {
+      mouse = GetMouseLocation(display, window);
+   }
+   else
+   {
+      mouse.Left = 0.5 * screenWidth;
+      mouse.Top = 0.5 * screenHeight;
+   }
 
    /* Delta scale */
    double dsf = sf / lastSf;
@@ -153,6 +162,7 @@ int main(void)
 
    /* Read settings (or command line arguments...?) */
    Bool startFullscreen = True;
+   Bool centerOnMouse = False;
    double defaultScaleFactor = 2.0;
    double maxScaleFactor = 4.0;
    double scaleFactorIncrement = 1.0;
@@ -187,7 +197,7 @@ int main(void)
 
    /* Figure out where the image should be panned to */
    struct ViewLocation viewLocation = { .Left = 0, .Top = 0 };
-   CenterViewOnMouse(display, window, screenWidth, screenHeight, currentScaleFactor, 1.0, &viewLocation);
+   CenterView(display, window, screenWidth, screenHeight, currentScaleFactor, 1.0, centerOnMouse, &viewLocation);
 
    /* Show window and make fullscreen if requested */
    if (startFullscreen)
@@ -233,7 +243,7 @@ int main(void)
                XDestroyImage(scaledImage);
                scaledImage = NULL;
                scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
-               CenterViewOnMouse(display, window, screenWidth, screenHeight, currentScaleFactor, lastScaleFactor, &viewLocation);
+               CenterView(display, window, screenWidth, screenHeight, currentScaleFactor, lastScaleFactor, centerOnMouse, &viewLocation);
                PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
             }
          }
@@ -251,7 +261,7 @@ int main(void)
                XDestroyImage(scaledImage);
                scaledImage = NULL;
                scaledImage = ScaleXImage(screenshot, currentScaleFactor, display, visual, depth);
-               CenterViewOnMouse(display, window, screenWidth, screenHeight, currentScaleFactor, lastScaleFactor, &viewLocation);
+               CenterView(display, window, screenWidth, screenHeight, currentScaleFactor, lastScaleFactor, centerOnMouse, &viewLocation);
                PutXImageWithinBounds(display, window, graphicsContext, scaledImage, &viewLocation);
             }
          }
