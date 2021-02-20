@@ -6,8 +6,8 @@
 #include <string.h>
 
 /* Compile with
- * gcc -g main.c -L/usr/X11R6/lib -lX11 -o main
- * ./main
+ * gcc -g zoomx.c -L/usr/X11R6/lib -lX11 -o zoomx
+ * ./zoomx
  */
 
 XImage* ScaleXImage(XImage* originalImage, double scale, Display* display, Visual* visual, int depth)

@@ -14,3 +14,12 @@ Configuration with i3:
 # ~/.config/i3/config
 bindsym $mod+Shift+z exec zoomx
 ```
+
+## Building from source
+
+Build from source with gcc
+
+```shell
+gcc -g zoomx.c -L/usr/X11R6/lib -lX11 -o zoomx
+./zoomx
+```

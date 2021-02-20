@@ -7,11 +7,11 @@ arch=('any')
 url="https://github.com/boom-roasted/zoomx"
 license=('MIT')
 depends=(glibc libx11)
-source=("main.c")
-sha256sums=('71c4c9a5872d4577b79abb382b41124191022ca8830fe390829ad6572abc75a1')
+source=("zoomx.c")
+sha256sums=('0569f4788ca95eacd2a1f617dc533bdefa4c8ec96085e71317f932bf5053c66a')
 
 build() {
-	gcc -g main.c -L/usr/X11R6/lib -lX11 -o zoomx
+	gcc -g zoomx.c -L/usr/X11R6/lib -lX11 -o zoomx
 }
 
 package() {
