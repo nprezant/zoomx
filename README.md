@@ -15,6 +15,12 @@ Configuration with i3:
 bindsym $mod+Shift+z exec zoomx
 ```
 
+## Installation
+
+Install through the [Arch Linux AUR](https://aur.archlinux.org/packages/zoomx/)
+
+Alternatively, it's just one file so feel free to build it on your own.
+
 ## Building from source
 
 Build from source with gcc
